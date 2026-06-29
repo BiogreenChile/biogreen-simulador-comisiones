@@ -208,7 +208,7 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;-webkit-font-
 
 <!-- ── Acceso por RUT ── -->
 <div id="rut-overlay" style="display:flex">
-  <div class="rut-box">
+  <div class="rut-box" id="rut-box-form">
     <div class="login-welcome">Bienvenida</div>
     <div class="login-headline" style="font-size:20px">Ingresa tu RUT para entrar al simulador</div>
     <div style="font-size:12px;color:var(--tx2);margin-top:6px">Sin puntos ni guion (ej: 123456789)</div>
@@ -217,6 +217,12 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;-webkit-font-
       onkeydown="if(event.key==='Enter')submitRut()">
     <button class="rut-btn" id="rut-btn" onclick="submitRut()">Ingresar</button>
     <div id="rut-msg"></div>
+  </div>
+  <div class="rut-box" id="rut-box-welcome" style="display:none">
+    <div style="color:var(--g);margin-bottom:14px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
+    <div class="login-welcome">Bienvenida</div>
+    <div class="login-headline" style="font-size:24px" id="rut-welcome-name">—</div>
+    <div style="font-size:13px;color:var(--tx2);margin-top:8px">Ya puedes ingresar al simulador…</div>
   </div>
 </div>
 
@@ -369,12 +375,14 @@ window.submitRut=function(){
     .then(r=>r.json())
     .then(data=>{
       if(data.found){
-        msg.innerHTML=`<div class="rut-msg ok">${I('check',14)} Bienvenida, ${data.name}</div>`;
+        document.getElementById('rut-box-form').style.display='none';
+        document.getElementById('rut-welcome-name').textContent=data.name;
+        document.getElementById('rut-box-welcome').style.display='block';
         setTimeout(()=>{
           const ov=document.getElementById('rut-overlay');
           ov.classList.add('hide');
           setTimeout(()=>{ov.style.display='none';showModeOverlayIfNeeded();},420);
-        },700);
+        },1800);
       } else {
         btn.disabled=false; btn.textContent='Ingresar';
         msg.innerHTML=`<div class="rut-msg err">RUT no encontrado.</div>
