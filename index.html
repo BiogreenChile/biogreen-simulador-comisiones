@@ -484,6 +484,21 @@ const DIRECT_RATES=[
   [25, 20, 13, 8]
 ];
 
+// Tabla Delegada — derivada de los precios de categoría (producto Normal).
+// En Delegada la ganancia es la resta de precios de compra, así que el
+// diferencial = % que paga el comprador − % que pagas tú. Se calcula aquí
+// para que no se desincronice si cambian los precios de PROD_TYPES.
+const DELEG_RATES=(()=>{
+  const pct=PROD_TYPES[0].pct; // Normal: [75,65,59,55,51,49,48,47,46,44]
+  const rows=[];
+  for(let s=1;s<pct.length;s++){
+    const row=[];
+    for(let b=0;b<4;b++) row.push(b<s?pct[b]-pct[s]:0);
+    rows.push(row);
+  }
+  return rows; // índice 0 = DBR+, 1 = LID, 2 = COR, 3 = DT, ...
+})();
+
 const F=606; // Factor de red: valor de referencia por punto (precio base DBR+ por pto)
 const SCENARIOS={
   2:[{li:0,count:1,vol:70,nivel:'eq'},{li:1,count:1,vol:180,nivel:'eq'},{li:1,count:1,vol:250,nivel:'eq'},{li:1,count:1,vol:200,nivel:'eq'}],
@@ -1704,14 +1719,28 @@ function planRender(){
     </div>
   </div>
 
-  <div class="card"><div class="ctitle">Cómo se calcula la ganancia de red en cada modo</div>
+  ${(()=>{
+    const esDir=S.distMode==='directa';
+    const filas=esDir
+      ? [['DBR+','#1D9E75'],['LID','#888780'],['COR','#D85A30'],['DIR (DT→DN)','#B8770A']]
+          .map((r,i)=>[r[0],r[1],DIRECT_RATES[i]])
+      : L.slice(1).map((lv,i)=>[lv.id,lv.c,DELEG_RATES[i]]);
+    const titulo=esDir?'Tabla Distribución Directa':'Tabla Distribución Delegada';
+    const pie=esDir
+      ? `<strong>Cálculo Distribución Directa:</strong> precio real de compra de quien te compra (según su propio % de categoría) × % de la tabla = tu retorno.<br>
+         Ejemplo: Director sobre un DBR → ($14.990 × 75%) × 25% = $2.811 de retorno · Accesorios/Kits excluidos del cálculo.`
+      : `<strong>Cálculo Distribución Delegada:</strong> tu ganancia es la resta entre el precio de compra de quien te compra y el tuyo. El % de la tabla es esa diferencia, aplicada sobre el precio de catálogo.<br>
+         Ejemplo: Líder sobre un DBR → el DBR paga el 75% del catálogo y el Líder el 59%, así que el Líder gana el 16%: $14.990 × 16% = $2.398.`;
+    return `<div class="card"><div class="ctitle">Cómo se calcula la ganancia de red en tu modo</div>
     <div style="font-size:12px;color:var(--tx);line-height:1.8">
-      <strong style="color:var(--g)">Distribución Delegada:</strong> tu ganancia = precio real de compra de quien te compra − tu propio precio real de compra.<br>
-      <strong style="color:#B8770A">Distribución Directa:</strong> quien te compra paga su propio precio de categoría, y tu ganancia es el % de la tabla siguiente sobre ese precio.
+      ${esDir
+        ? `<strong style="color:#B8770A">Distribución Directa:</strong> quien te compra paga su propio precio de categoría, y tu ganancia es el % de la tabla siguiente sobre ese precio.`
+        : `<strong style="color:var(--g)">Distribución Delegada:</strong> tu ganancia = precio real de compra de quien te compra − tu propio precio real de compra.`}
+      <div style="margin-top:9px;font-size:11px;color:var(--tx2)">Estás viendo la tabla de <strong>${esDir?'Distribución Directa':'Distribución Delegada'}</strong>. Puedes cambiar de modo desde el menú lateral.</div>
     </div>
   </div>
 
-  <div class="card"><div class="ctitle">Tabla Distribución Directa · Diferenciales de Ganancias</div>
+  <div class="card"><div class="ctitle">${titulo} · Diferenciales de Ganancias</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:400px">
       <thead><tr style="background:var(--card2);border-bottom:2px solid var(--bdr)">
         <th style="text-align:left;padding:9px 10px;color:var(--tx2);font-weight:700">Quien vende →</th>
@@ -1720,16 +1749,14 @@ function planRender(){
         <th style="text-align:center;padding:9px 8px;color:#888780;font-weight:700">Sobre LID</th>
         <th style="text-align:center;padding:9px 8px;color:#D85A30;font-weight:700">Sobre COR</th>
       </tr></thead><tbody>
-      ${[['DBR+','#1D9E75'],['LID','#888780'],['COR','#D85A30'],['DIR (DT→DN)','#B8770A']].map((r,i)=>`<tr style="border-bottom:1px solid var(--bdr)">
+      ${filas.map(r=>`<tr style="border-bottom:1px solid var(--bdr)">
         <td style="padding:9px 10px;font-weight:700;color:${r[1]}">${r[0]}</td>
-        ${DIRECT_RATES[i].map(v=>`<td style="text-align:center;padding:9px 8px;font-weight:800;color:${v>0?'var(--g)':'var(--tx3)'}">${v>0?v+'%':'—'}</td>`).join('')}
+        ${r[2].map(v=>`<td style="text-align:center;padding:9px 8px;font-weight:800;color:${v>0?'var(--g)':'var(--tx3)'}">${v>0?v+'%':'—'}</td>`).join('')}
       </tr>`).join('')}
       </tbody></table></div>
-    <div style="margin-top:8px;padding:8px 12px;background:var(--gl);border-radius:8px;font-size:11px;color:var(--gd);line-height:1.6">
-      <strong>Cálculo Distribución Directa:</strong> precio real de compra de quien te compra (según su propio % de categoría) × % de la tabla = tu retorno.<br>
-      Ejemplo: Director sobre un DBR → ($14.990 × 75%) × 25% = $2.811 de retorno · Accesorios/Kits excluidos del cálculo.
-    </div>
-  </div>
+    <div style="margin-top:8px;padding:8px 12px;background:var(--gl);border-radius:8px;font-size:11px;color:var(--gd);line-height:1.6">${pie}</div>
+  </div>`;
+  })()}
 `;
   return h;
 }
