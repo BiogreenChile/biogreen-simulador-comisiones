@@ -504,6 +504,7 @@ const DELEG_RATES=(()=>{
 // Es el precio de compra por punto, neto (sin IVA): PVP/10 × %categoría ÷ 1,19.
 // Índices alineados con L: DBR, DBR+, LID, COR, DT, DR, DS, DD, DE, DN.
 const PUNTO_VAL=[945,819,745,696,639,622,606,589,573,557];
+const IVA=1.19;
 const F=PUNTO_VAL[1]; // referencia DBR+ para cálculos genéricos
 const SCENARIOS={
   2:[{li:0,count:1,vol:70,nivel:'eq'},{li:1,count:1,vol:180,nivel:'eq'},{li:1,count:1,vol:250,nivel:'eq'},{li:1,count:1,vol:200,nivel:'eq'}],
@@ -666,12 +667,24 @@ function calcTeamRow(myIdx,tm){
   const pto=PUNTO_VAL[tm.li]; // el punto vale según la categoría de quien está en tu red
   const clp=tm.count*tm.vol*pto;
   if(!th.isDir){
-    const meR=modeRate(myIdx), buyR=modeRate(tm.li);
-    const d=Math.max(0,meR-buyR);
-    const modeStr=S.distMode==='directa'?'Directa':'Delegada';
+    if(S.distMode==='directa'){
+      // Directa: % de la tabla del plan sobre el precio neto que paga quien te compra.
+      // La lámina oficial indica que la base de cálculo es el valor neto.
+      const myRow=myIdx===1?0:myIdx===2?1:myIdx===3?2:myIdx>=4?3:null;
+      const buyerCol=tm.li<=3?tm.li:null;
+      const d=(myRow!==null&&buyerCol!==null)?DIRECT_RATES[myRow][buyerCol]:0;
+      return{
+        earn:Math.round(clp*d/100), rate:d, zero:d===0, pto,
+        detail:`Directa: ${d}% sobre el precio de ${th.id} · Vol×$${pto}×${d}%`
+      };
+    }
+    // Delegada: diferencia entre lo que paga quien te compra y lo que pagas tú.
+    // PUNTO_VAL es neto, así que se lleva a bruto para que calce con el plan.
+    const dif=Math.max(0,pto-PUNTO_VAL[myIdx]);
+    const pct=pto>0?Math.round(dif/pto*100):0;
     return{
-      earn:Math.round(clp*d/100), rate:d, zero:d===0, pto,
-      detail:`${modeStr}: ${me.id}(${meR}%)−${th.id}(${buyR}%)=${d}% · Vol×$${pto}×${d}%`
+      earn:Math.round(tm.count*tm.vol*dif*IVA), rate:pct, zero:dif===0, pto,
+      detail:`Delegada: $${pto} (${th.id}) − $${PUNTO_VAL[myIdx]} (${me.id}) = $${dif} por punto`
     };
   }
   const r=tm.nivel==='N1'?me.b1:tm.nivel==='N2'?me.b2:0;
@@ -1155,7 +1168,7 @@ function crRender(){
           if(S.distMode==='directa'){
             calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Tabla Directa ${nm(me)}→${nm(lv)}: ${r.rate}% · ${tm.count}p × ${tm.vol}pts × $${r.pto} × ${r.rate}% = <strong>${$c(r.earn)}</strong></div>`;
           } else {
-            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} ${me.rate}% (${nm(me)}) − ${lv.rate}% (${nm(lv)}) = ${r.rate}% · ${tm.count}p × ${tm.vol}pts × $${r.pto} × ${r.rate}% = <strong>${$c(r.earn)}</strong></div>`;
+            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Delegada ${nm(me)}→${nm(lv)}: $${r.pto} (paga ${lv.id}) − $${PUNTO_VAL[myIdx]} (pagas tú) = $${r.pto-PUNTO_VAL[myIdx]} por punto · ${tm.count}p × ${tm.vol}pts + IVA = <strong>${$c(r.earn)}</strong></div>`;
           }
         }
         h+=`<div class="mem-card">
