@@ -470,9 +470,10 @@ const PROD_TYPES=[
 //   DBR+ = 0, LID = 7, COR = 12, DIR (todos) = 20
 const DR = [-5, 0, 7, 12, 20, 20, 20, 20, 20, 20]; // Directa rates por índice de nivel
 
-// Tasa efectiva según modo activo
+// Descuento de compra por categoría — es el MISMO en ambos modos.
+// Lo que cambia entre Directa y Delegada es la ganancia de red, no este descuento.
 function modeRate(idx){
-  return S.distMode==='directa' ? DR[idx] : L[idx].rate;
+  return L[idx].rate;
 }
 
 // Tabla de referencia para Plan Completo (DIRECT_RATES derivada del modelo)
