@@ -502,10 +502,10 @@ const DELEG_RATES=(()=>{
 
 // ─── VALOR DEL PUNTO POR CATEGORÍA ───
 // Cada nivel compra a un precio distinto, así que su punto vale distinto.
-// Es el precio de compra por punto, neto (sin IVA): PVP/10 × %categoría ÷ 1,19.
 // Índices alineados con L: DBR, DBR+, LID, COR, DT, DR, DS, DD, DE, DN.
-const PUNTO_VAL=[945,819,745,696,639,622,606,589,573,557];
 const IVA=1.19;
+const PUNTO_VAL_NETO=[945,819,745,696,639,622,606,589,573,557]; // valor del punto NETO (dato oficial)
+const PUNTO_VAL=PUNTO_VAL_NETO.map(v=>Math.round(v*IVA)); // con IVA incluido — es lo que usan los cálculos
 const F=PUNTO_VAL[1]; // referencia DBR+ para cálculos genéricos
 const SCENARIOS={
   2:[{li:0,count:1,vol:70,nivel:'eq'},{li:1,count:1,vol:180,nivel:'eq'},{li:1,count:1,vol:250,nivel:'eq'},{li:1,count:1,vol:200,nivel:'eq'}],
@@ -684,7 +684,7 @@ function calcTeamRow(myIdx,tm){
     const dif=Math.max(0,pto-PUNTO_VAL[myIdx]);
     const pct=pto>0?Math.round(dif/pto*100):0;
     return{
-      earn:Math.round(tm.count*tm.vol*dif*IVA), rate:pct, zero:dif===0, pto,
+      earn:Math.round(tm.count*tm.vol*dif), rate:pct, zero:dif===0, pto,
       detail:`Delegada: $${pto} (${th.id}) − $${PUNTO_VAL[myIdx]} (${me.id}) = $${dif} por punto`
     };
   }
@@ -1169,7 +1169,7 @@ function crRender(){
           if(S.distMode==='directa'){
             calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Tabla Directa ${nm(me)}→${nm(lv)}: ${r.rate}% · ${tm.count}p × ${tm.vol}pts × $${r.pto} × ${r.rate}% = <strong>${$c(r.earn)}</strong></div>`;
           } else {
-            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Delegada ${nm(me)}→${nm(lv)}: $${r.pto} (paga ${lv.id}) − $${PUNTO_VAL[myIdx]} (pagas tú) = $${r.pto-PUNTO_VAL[myIdx]} por punto · ${tm.count}p × ${tm.vol}pts + IVA = <strong>${$c(r.earn)}</strong></div>`;
+            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Delegada ${nm(me)}→${nm(lv)}: $${r.pto} (paga ${lv.id}) − $${PUNTO_VAL[myIdx]} (pagas tú) = $${r.pto-PUNTO_VAL[myIdx]} por punto · ${tm.count}p × ${tm.vol}pts = <strong>${$c(r.earn)}</strong></div>`;
           }
         }
         h+=`<div class="mem-card">
