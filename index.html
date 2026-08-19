@@ -630,7 +630,7 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
     // Delegada: ganancia = precio real de compra de quien te compra − tu precio real de compra
     const mePrice=levelBuyPrice(myIdx,pvp,prodId,meRate);
     const buyerPrice=levelBuyPrice(buyerIdx,pvp,prodId,buyerRate);
-    const earn=Math.max(0,buyerPrice-mePrice);
+    const earn=Math.round(Math.max(0,buyerPrice-mePrice)*IVA); // con IVA
     return{
       earn, buyerPrice, mePrice, diff, meRate, buyerRate,
       excluded:false,
@@ -650,7 +650,7 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
   const buyerCol=buyerIdx===0?0:buyerIdx===1?1:buyerIdx===2?2:buyerIdx===3?3:null;
   const tableRate=(myRow!==null&&buyerCol!==null)?DIRECT_RATES[myRow][buyerCol]:0;
 
-  const earn=Math.round(buyerPrice*tableRate/100);
+  const earn=Math.round(buyerPrice*tableRate/100*IVA); // con IVA
 
   return{
     earn, buyerPrice, diff:tableRate, meRate, buyerRate,
@@ -952,11 +952,13 @@ function cvrRender(){
         <div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${I('calc',13)} Desglose · ${modeDisp} · ${nm(me)} → ${nm(buyer)}</div>
         <div class="calc-step"><span style="color:var(--tx2)">Precio de compra ${buyer.id} (precio de catálogo según su nivel)</span><span class="calc-arrow">→</span><span><strong>${$c(buyerPrice)}</strong></span></div>
         <div class="calc-step"><span style="color:var(--tx2)">Menos tu precio de compra (${nm(me)})</span><span class="calc-arrow">→</span><span><strong>${$c(calc.mePrice)}</strong></span></div>
-        <div class="calc-step"><span style="color:var(--tx2)">La diferencia entre ambos precios es tu ganancia</span><span class="calc-arrow">→</span><span class="calc-result">${earn>0?$c(earn):'Sin diferencial'}</span></div>
+        <div class="calc-step"><span style="color:var(--tx2)">La diferencia entre ambos precios</span><span class="calc-arrow">→</span><span><strong>${$c(buyerPrice-calc.mePrice)}</strong></span></div>
+        <div class="calc-step"><span style="color:var(--tx2)">Más IVA (× 1,19) es tu ganancia</span><span class="calc-arrow">→</span><span class="calc-result">${earn>0?$c(earn):'Sin diferencial'}</span></div>
       </div>`:`<div class="calc-chain">
         <div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${I('calc',13)} Desglose · ${modeDisp} · ${nm(me)} → ${nm(buyer)}</div>
         <div class="calc-step"><span style="color:var(--tx2)">Precio de compra ${buyer.id} (precio de catálogo según su nivel)</span><span class="calc-arrow">→</span><span><strong>${$c(buyerPrice)}</strong></span></div>
-        <div class="calc-step"><span style="color:var(--tx2)">Según la tabla de retorno por categoría, ganas <strong>${calc.diff}%</strong> de ese precio</span><span class="calc-arrow">→</span><span class="calc-result">${earn>0?$c(earn):'Sin retorno definido'}</span></div>
+        <div class="calc-step"><span style="color:var(--tx2)">Según la tabla de retorno por categoría, ganas <strong>${calc.diff}%</strong> de ese precio</span><span class="calc-arrow">→</span><span><strong>${$c(Math.round(buyerPrice*calc.diff/100))}</strong></span></div>
+        <div class="calc-step"><span style="color:var(--tx2)">Más IVA (× 1,19) es tu ganancia</span><span class="calc-arrow">→</span><span class="calc-result">${earn>0?$c(earn):'Sin retorno definido'}</span></div>
       </div>`;
     }
 
