@@ -778,7 +778,7 @@ function cpRender(){
   const modeLabel=S.distMode==='directa'?I('store',12)+' Directa':I('users',12)+' Delegada';
 
   let h=logoHeader()+`<div class="pg-title">Calculadora de Ganancias a Clientes</div>
-  <div class="pg-sub">Sigue estos pasos: elige tu nivel, el tipo de producto y el precio catálogo.${S.cp_myLvl>=2?' Para LID+ el precio varía según el modo.':''}</div>
+  <div class="pg-sub">Sigue estos pasos: elige tu nivel, el tipo de producto y el precio catálogo.</div>
 
   <div class="card">
     <div class="ctitle">Tu nivel</div>
@@ -804,10 +804,10 @@ function cpRender(){
     <div class="hint">${prod.emoji} <strong>${prod.label}</strong> · ${prod.desc}</div>
     <div style="margin-top:10px">
       ${S.cp_myLvl>=2&&buyPctTable<100?`
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--tx2)">
-        <span>PVP</span><span style="color:var(--g);font-weight:700">×65%</span><span>= Precio DBR+ <strong style="color:var(--tx)">${$c(dbrBase)}</strong></span>
-        <span style="color:var(--g);font-weight:700">×(1−${myRate}%)</span><span>= Tu precio <strong style="color:var(--rd)">${$c(compra)}</strong></span>
-        <span style="color:var(--tx3)">→ Ganancia</span><span style="font-size:14px;font-weight:800;color:var(--g)">${$c(earn)} (${realGainPct}%)</span>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12px;color:var(--tx2)">
+        <span>Compras a <strong style="color:var(--rd);font-size:14px">${$c(compra)}</strong></span>
+        <span>Vendes a <strong style="color:var(--tx);font-size:14px">${$c(pvp)}</strong></span>
+        <span>Ganas <strong style="color:var(--g);font-size:15px">${$c(earn)}</strong> <span style="color:var(--g);font-weight:700">(${realGainPct}%)</span></span>
       </div>`:`
       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
         <div style="font-size:12px;color:var(--tx2)">Tu precio de compra (${nm(me)})</div>
@@ -828,18 +828,15 @@ function cpRender(){
     <div class="rh-lbl">${nm(me)} · ${prod.label} · PVP ${$c(pvp)} · ${modeLabel}</div>
     <div class="rh-val">${$c(earn)}</div>
     <div class="rh-sub">Compras a ${$c(compra)} · Vendes a ${$c(pvp)} · Ganas ${realGainPct}%</div>
-    ${S.cp_myLvl>=2&&buyPctTable<100?`
-    <div class="rh-row"><span class="rh-row-lbl">Precio DBR+ (PVP × 65%)</span><span class="rh-row-val">${$c(dbrBase)}</span></div>
-    <div class="rh-row"><span class="rh-row-lbl">Tu precio (Precio DBR+ × ${100-myRate}%)</span><span class="rh-row-val">${$c(compra)}</span></div>`:`
-    <div class="rh-row"><span class="rh-row-lbl">Tu precio (${buyPctTable}% del PVP)</span><span class="rh-row-val">${$c(compra)}</span></div>`}
-    <div class="rh-row" style="background:rgba(255,255,255,.25)"><span class="rh-row-lbl" style="font-weight:800">✓ Tu ganancia (${realGainPct}% del PVP)</span><span class="rh-row-val" style="font-size:18px">${$c(earn)}</span></div>
+    <div class="rh-row"><span class="rh-row-lbl">Precio en el catálogo</span><span class="rh-row-val">${$c(pvp)}</span></div>
+    <div class="rh-row"><span class="rh-row-lbl">Tu precio de compra (${realGainPct}% de descuento)</span><span class="rh-row-val">${$c(compra)}</span></div>
+    <div class="rh-row" style="background:rgba(255,255,255,.25)"><span class="rh-row-lbl" style="font-weight:800">✓ Tu ganancia por venderlo</span><span class="rh-row-val" style="font-size:18px">${$c(earn)}</span></div>
   </div>
   ${S.cp_myLvl>=2&&buyPctTable<100?`<div class="calc-chain">
-    <div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${I('calc',13)} Cómo se calcula tu precio · ${nm(me)} · ${modeLabel}</div>
-    <div class="calc-step"><span style="color:var(--tx2)">PVP al cliente</span><span class="calc-arrow">→</span><span><strong>${$c(pvp)}</strong></span></div>
-    <div class="calc-step"><span style="color:var(--tx2)">× 65% = Precio DBR+ (base del plan)</span><span class="calc-arrow">→</span><span><strong>${$c(dbrBase)}</strong></span></div>
-    <div class="calc-step"><span style="color:var(--tx2)">× (1 − ${myRate}%) = × ${100-myRate}% → Descuento adicional ${nm(me)} en modo ${S.distMode==='directa'?'Directa':'Delegada'}</span><span class="calc-arrow">→</span><span>Tu precio: <strong>${$c(compra)}</strong></span></div>
-    <div class="calc-step"><span style="color:var(--tx2)">PVP − Tu precio = Tu ganancia</span><span class="calc-arrow">=</span><span class="calc-result">${$c(earn)} (${realGainPct}%)</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${I('calc',13)} Cómo se arma tu ganancia · ${me.n}</div>
+    <div class="calc-step"><span style="color:var(--tx2)">Precio del producto en el catálogo</span><span class="calc-arrow">→</span><span><strong>${$c(pvp)}</strong></span></div>
+    <div class="calc-step"><span style="color:var(--tx2)">Tú lo compras con tu ${realGainPct}% de descuento de ${me.n}</span><span class="calc-arrow">→</span><span>Pagas <strong>${$c(compra)}</strong></span></div>
+    <div class="calc-step"><span style="color:var(--tx2)">Lo vendes al precio de catálogo y te quedas con la diferencia</span><span class="calc-arrow">=</span><span class="calc-result">${$c(earn)} de ganancia</span></div>
   </div>`:''}
   <div class="card">
     <div class="ctitle">Proyección · ${prod.label} · Nivel ${nm(me)}</div>
@@ -858,7 +855,7 @@ function cpRender(){
 
   ${pvp>0?`<div class="card">
     <div class="ctitle">Margen por tipo de producto · Nivel ${nm(me)} · PVP ${$c(pvp)}</div>
-    ${S.cp_myLvl>=2?`<div style="font-size:11px;color:var(--gd);background:var(--gl);border-radius:8px;padding:7px 11px;margin-bottom:10px">ℹ️ <strong>Fórmula ${modeLabel}:</strong> PVP × 65% (Precio DBR+) × (1 − ${myRate}%) = Tu precio · % Ganancias: <strong>${myRate}%</strong></div>`:''}
+    ${S.cp_myLvl>=2?`<div style="font-size:11px;color:var(--gd);background:var(--gl);border-radius:8px;padding:7px 11px;margin-bottom:10px">ℹ️ Como <strong>${me.n}</strong> compras cada producto con descuento y lo vendes al precio del catálogo. La diferencia es tu ganancia.</div>`:''}
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:var(--card2);border-bottom:2px solid var(--bdr)">
         <th style="text-align:left;padding:9px 8px;color:var(--tx2);font-weight:700">Tipo</th>
