@@ -507,26 +507,33 @@ const IVA=1.19;
 const PUNTO_VAL_NETO=[945,819,745,696,639,622,606,589,573,557]; // valor del punto NETO (dato oficial)
 const PUNTO_VAL=PUNTO_VAL_NETO.map(v=>Math.round(v*IVA)); // con IVA incluido — es lo que usan los cálculos
 const F=PUNTO_VAL[1]; // referencia DBR+ para cálculos genéricos
+// Equipos típicos — cada uno cumple (o supera apenas) el mínimo de estructura y volumen de su nivel.
+const P=(n,vol,nivel='eq')=>Array.from({length:n},()=>({vol,nivel}));
 const SCENARIOS={
-  2:[{li:0,count:1,vol:70,nivel:'eq'},{li:1,count:1,vol:180,nivel:'eq'},{li:1,count:1,vol:250,nivel:'eq'},{li:1,count:1,vol:200,nivel:'eq'}],
-  3:[{li:0,count:4,vol:70,nivel:'eq'},{li:0,count:3,vol:120,nivel:'eq'},{li:1,count:4,vol:200,nivel:'eq'},{li:1,count:3,vol:250,nivel:'eq'}],
-  4:[{li:0,count:6,vol:70,nivel:'eq'},{li:1,count:7,vol:200,nivel:'eq'},{li:1,count:4,vol:300,nivel:'eq'},{li:2,count:1,vol:1000,nivel:'eq'}],
-  5:[{li:0,count:7,vol:70,nivel:'eq'},{li:0,count:5,vol:150,nivel:'eq'},{li:1,count:4,vol:200,nivel:'eq'},{li:2,count:2,vol:1000,nivel:'eq'}],
-  6:[{li:0,count:4,vol:70,nivel:'eq'},{li:0,count:3,vol:100,nivel:'eq'},{li:1,count:6,vol:200,nivel:'eq'},{li:2,count:2,vol:1000,nivel:'eq'},{li:4,count:1,vol:5000,nivel:'N1'}],
-  7:[{li:0,count:4,vol:70,nivel:'eq'},{li:0,count:3,vol:100,nivel:'eq'},{li:1,count:6,vol:200,nivel:'eq'},{li:2,count:2,vol:1000,nivel:'eq'},{li:4,count:3,vol:5000,nivel:'N1'},{li:4,count:1,vol:5000,nivel:'N2'}],
-  8:[{li:0,count:6,vol:70,nivel:'eq'},{li:0,count:5,vol:100,nivel:'eq'},{li:1,count:7,vol:200,nivel:'eq'},{li:2,count:2,vol:1000,nivel:'eq'},{li:4,count:5,vol:5000,nivel:'N1'},{li:4,count:2,vol:5000,nivel:'N2'}],
-  9:[{li:0,count:6,vol:70,nivel:'eq'},{li:0,count:5,vol:100,nivel:'eq'},{li:1,count:7,vol:200,nivel:'eq'},{li:2,count:2,vol:1000,nivel:'eq'},{li:4,count:7,vol:5000,nivel:'N1'},{li:4,count:3,vol:5000,nivel:'N2'}]
+  2:[{li:0,people:P(2,150)},{li:1,people:P(2,400)}],                                                   // dist 4 · ve 1.100
+  3:[{li:0,people:P(5,200)},{li:1,people:P(5,450)}],                                                   // dist 10 · ve 3.250
+  4:[{li:0,people:P(5,400)},{li:1,people:P(4,600)},{li:2,people:P(1,1000)}],                           // dist 10 · lid 1 · ve 5.400
+  5:[{li:0,people:P(8,250)},{li:1,people:P(8,300)},{li:2,people:P(2,500)},{li:4,people:P(1,5000,'N1')}], // dist 18 · lid 2 · ve 5.400 · vgi 5.000
+  6:[{li:0,people:P(8,250)},{li:1,people:P(8,300)},{li:2,people:P(2,500)},{li:4,people:P(1,5000,'N1')}], // + d1 1 · vo 10.400
+  7:[{li:0,people:P(8,250)},{li:1,people:P(8,300)},{li:2,people:P(2,500)},{li:4,people:[...P(3,5000,'N1'),...P(1,5000,'N2')]}], // d1 3 · d2 1 · vgi 20.000
+  8:[{li:0,people:P(8,350)},{li:1,people:P(8,400)},{li:2,people:P(2,600)},{li:4,people:[...P(5,5000,'N1'),...P(2,5000,'N2')]}], // ve 7.200 · vgi 35.000
+  9:[{li:0,people:P(8,350)},{li:1,people:P(8,400)},{li:2,people:P(2,600)},{li:4,people:[...P(7,5000,'N1'),...P(3,5000,'N2')]}]  // vgi 50.000 · vo 57.200
 };
 
 // ─── HELPERS ───
 const $=id=>document.getElementById(id);
+// Modelo de equipo: cada entrada = {li, people:[{vol, nivel}]}. nivel solo aplica a directores (N1/N2).
+// Helpers tolerantes: soportan tanto el modelo nuevo (people) como el viejo (count/vol) por si queda estado antiguo.
+function tmCount(t){return t.people?t.people.length:(t.count||0);}
+function tmVol(t){return t.people?t.people.reduce((a,p)=>a+(+p.vol||0),0):((t.count||0)*(t.vol||0));}
+function tmNivCount(t,nv){return t.people?t.people.filter(p=>p.nivel===nv).length:(t.nivel===nv?(t.count||0):0);}
 function NT(team){return{
-  dist:team.filter(t=>!L[t.li].isDir).reduce((a,t)=>a+t.count,0),
-  lid:team.filter(t=>t.li===2).reduce((a,t)=>a+t.count,0),
-  d1:team.filter(t=>L[t.li].isDir&&t.nivel==='N1').reduce((a,t)=>a+t.count,0),
-  d2:team.filter(t=>L[t.li].isDir&&t.nivel==='N2').reduce((a,t)=>a+t.count,0),
-  ve:team.filter(t=>!L[t.li].isDir).reduce((a,t)=>a+t.count*t.vol,0),
-  vgi:team.filter(t=>L[t.li].isDir).reduce((a,t)=>a+t.count*t.vol,0),
+  dist:team.filter(t=>!L[t.li].isDir).reduce((a,t)=>a+tmCount(t),0),
+  lid:team.filter(t=>t.li===2).reduce((a,t)=>a+tmCount(t),0),
+  d1:team.filter(t=>L[t.li].isDir).reduce((a,t)=>a+tmNivCount(t,'N1'),0),
+  d2:team.filter(t=>L[t.li].isDir).reduce((a,t)=>a+tmNivCount(t,'N2'),0),
+  ve:team.filter(t=>!L[t.li].isDir).reduce((a,t)=>a+tmVol(t),0),
+  vgi:team.filter(t=>L[t.li].isDir).reduce((a,t)=>a+tmVol(t),0),
   get vo(){return this.ve+this.vgi;}
 };}
 function validate(idx,nt,vp){
@@ -595,9 +602,6 @@ window._dirty=false;
 window.fmtInput=function(el,sk){var raw=el.value.replace(/\./g,'');S[sk]=Math.max(0,parseInt(raw)||0);};
 window.blurFmt=function(el,sk){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);S[sk]=n;el.value=n>0?fmtN(n):'';R();};
 window.enterFmt=function(el,sk,ev){if(ev.key==='Enter')window.blurFmt(el,sk);};
-window.fmtVolCR=function(el,li){var raw=el.value.replace(/\./g,'');crUpdMSilent(li,'vol',Math.max(0,parseInt(raw)||0));};
-window.blurVolCR=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);crUpdM(li,'vol',n);el.value=n>0?fmtN(n):'';};
-window.enterVolCR=function(el,li,ev){if(ev.key==='Enter')window.blurVolCR(el,li);};
 window.fmtVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');valUpdMSilent(li,'vol',Math.max(0,parseInt(raw)||0));};
 window.blurVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);valUpdM(li,'vol',n);el.value=n>0?fmtN(n):'';};
 
@@ -668,30 +672,32 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
 function calcTeamRow(myIdx,tm){
   const me=L[myIdx],th=L[tm.li];
   const pto=PUNTO_VAL[tm.li]; // el punto vale según la categoría de quien está en tu red
-  const clp=tm.count*tm.vol*pto;
+  const vol=tmVol(tm);        // suma de puntos de todas las personas de esta categoría
   if(!th.isDir){
     if(S.distMode==='directa'){
-      // Directa: % de la tabla del plan sobre el precio neto que paga quien te compra.
-      // La lámina oficial indica que la base de cálculo es el valor neto.
       const myRow=myIdx===1?0:myIdx===2?1:myIdx===3?2:myIdx>=4?3:null;
       const buyerCol=tm.li<=3?tm.li:null;
       const d=(myRow!==null&&buyerCol!==null)?DIRECT_RATES[myRow][buyerCol]:0;
       return{
-        earn:Math.round(clp*d/100), rate:d, zero:d===0, pto,
-        detail:`Directa: ${d}% sobre el precio de ${th.id} · Vol×$${pto}×${d}%`
+        earn:Math.round(vol*pto*d/100), rate:d, zero:d===0, pto,
+        detail:`Directa: ${d}% sobre el precio de ${th.id}`
       };
     }
     // Delegada: diferencia entre lo que paga quien te compra y lo que pagas tú.
-    // PUNTO_VAL es neto, así que se lleva a bruto para que calce con el plan.
     const dif=Math.max(0,pto-PUNTO_VAL[myIdx]);
     const pct=pto>0?Math.round(dif/pto*100):0;
     return{
-      earn:Math.round(tm.count*tm.vol*dif), rate:pct, zero:dif===0, pto,
+      earn:Math.round(vol*dif), rate:pct, zero:dif===0, pto,
       detail:`Delegada: $${pto} (${th.id}) − $${PUNTO_VAL[myIdx]} (${me.id}) = $${dif} por punto`
     };
   }
-  const r=tm.nivel==='N1'?me.b1:tm.nivel==='N2'?me.b2:0;
-  return{earn:Math.round(clp*r/100),rate:r,zero:r===0,pto,detail:`Regalía ${tm.nivel}: ${r}%`};
+  // Director: regalía por persona según su nivel N1/N2 (cada persona puede tener el suyo)
+  const people=tm.people||[{vol:(tm.count||0)*(tm.vol||0),nivel:tm.nivel}];
+  const n1v=people.filter(p=>p.nivel==='N1').reduce((a,p)=>a+(+p.vol||0),0);
+  const n2v=people.filter(p=>p.nivel==='N2').reduce((a,p)=>a+(+p.vol||0),0);
+  const earn=Math.round((n1v*me.b1+n2v*me.b2)/100*pto);
+  const rate=vol>0?Math.round(earn/(vol*pto)*100):0;
+  return{earn,rate,zero:earn===0,pto,detail:`Regalía · N1 ${me.b1}% · N2 ${me.b2}%`};
 }
 
 function miniValidation(idx,nt,vp){
@@ -1167,58 +1173,45 @@ function crRender(){
     } else {
       S.cr_team.forEach(tm=>{
         const lv=L[tm.li],r=calcTeamRow(myIdx,tm);
+        const tCnt=tmCount(tm), tVol=tmVol(tm);
         // Desglose de cálculo para nivel LID+
         let calcNote='';
         if(!lv.isDir&&myIdx>=2){
           if(S.distMode==='directa'){
-            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Tabla Directa ${nm(me)}→${nm(lv)}: ${r.rate}% · ${tm.count}p × ${tm.vol}pts × $${r.pto} × ${r.rate}% = <strong>${$c(r.earn)}</strong></div>`;
+            calcNote=`<div style="margin-top:8px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Tabla Directa ${nm(me)}→${nm(lv)}: ${r.rate}% · ${Pt(tVol)} × $${r.pto} × ${r.rate}% = <strong>${$c(r.earn)}</strong></div>`;
           } else {
-            calcNote=`<div style="margin-top:6px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Delegada ${nm(me)}→${nm(lv)}: $${r.pto} (paga ${lv.id}) − $${PUNTO_VAL[myIdx]} (pagas tú) = $${r.pto-PUNTO_VAL[myIdx]} por punto · ${tm.count}p × ${tm.vol}pts = <strong>${$c(r.earn)}</strong></div>`;
+            calcNote=`<div style="margin-top:8px;padding:7px 10px;background:#F0FAF6;border-radius:7px;font-size:11px;color:var(--gd)">${I('calc',12)} Delegada ${nm(me)}→${nm(lv)}: $${r.pto} (paga ${lv.id}) − $${PUNTO_VAL[myIdx]} (pagas tú) = $${r.pto-PUNTO_VAL[myIdx]} por punto · ${Pt(tVol)} = <strong>${$c(r.earn)}</strong></div>`;
           }
         }
+        let peopleHtml='<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px">';
+        tm.people.forEach((p,j)=>{
+          peopleHtml+=`<div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:12px;color:var(--tx3);min-width:52px;flex:none">${lv.id} #${j+1}</span>
+            <input type="text" inputmode="numeric" value="${p.vol>0?fmtN(p.vol):''}" placeholder="0 pts"
+              oninput="fmtPersonCR(this,${tm.li},${j})" onblur="blurPersonCR(this,${tm.li},${j})" onkeydown="enterPersonCR(this,${tm.li},${j},event)"
+              style="font-size:16px;font-weight:700;padding:6px 9px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--card2);text-align:right;flex:1;min-width:0">
+            ${lv.isDir?`<div class="seg" style="flex:none">
+              <button class="seg-b" onclick="crSetPersonNivel(${tm.li},${j},'N1')" title="Me reporta a mí (${me.b1}%)" style="padding:6px 10px;background:${p.nivel==='N1'?'#7F77DD':'var(--card)'};color:${p.nivel==='N1'?'white':'var(--tx2)'}">N1</button>
+              <button class="seg-b" onclick="crSetPersonNivel(${tm.li},${j},'N2')" title="Vía mi N1 (${me.b2}%)" style="padding:6px 10px;background:${p.nivel==='N2'?'#7F77DD':'var(--card)'};color:${p.nivel==='N2'?'white':'var(--tx2)'}">N2</button>
+            </div>`:''}
+            <button onclick="crRemovePerson(${tm.li},${j})" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);cursor:pointer;font-size:12px;color:var(--tx2);flex:none">✕</button>
+          </div>`;
+        });
+        peopleHtml+=`</div><button class="sc-btn" onclick="crAddPerson(${tm.li})" style="width:100%;justify-content:center">${I('plus',12)} Agregar otro/a ${lv.id}</button>`;
         h+=`<div class="mem-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div style="display:flex;align-items:center;gap:9px">${liEl(lv,34,8)}
               <div><div style="font-size:13px;font-weight:700;color:var(--tx)">${lv.n}${tm.li===myIdx?' <span style="font-size:10px;background:var(--al);color:var(--ad);padding:1px 7px;border-radius:8px;font-weight:700">Mi nivel</span>':''}</div>
-              <div style="font-size:11px;color:${r.rate>0?'var(--g)':'#993C1D'};margin-top:1px">${r.detail} → <strong>${r.rate>0?$c(r.earn):'$0'}</strong></div></div>
+              <div style="font-size:11px;color:var(--tx2);margin-top:1px">${tCnt} persona${tCnt!==1?'s':''}${lv.isDir?` · ${tmNivCount(tm,'N1')} N1, ${tmNivCount(tm,'N2')} N2`:''}</div></div>
             </div>
             <button onclick="crRemove(${tm.li})" style="width:28px;height:28px;border-radius:7px;border:1px solid var(--bdr);background:var(--card);cursor:pointer;font-size:13px;color:var(--tx2)">✕</button>
           </div>
-          ${lv.isDir?`<div style="margin-bottom:10px">
-            <div style="font-size:11px;color:var(--tx2);margin-bottom:5px">¿Cómo está en tu organización?</div>
-            <div class="seg">
-              <button class="seg-b" onclick="crSetNivel(${tm.li},'N1')" style="background:${tm.nivel==='N1'?'#7F77DD':'var(--card)'};color:${tm.nivel==='N1'?'white':'var(--tx2)'}">N1 — me reporta a mí (${me.b1}%)</button>
-              <button class="seg-b" onclick="crSetNivel(${tm.li},'N2')" style="background:${tm.nivel==='N2'?'#7F77DD':'var(--card)'};color:${tm.nivel==='N2'?'white':'var(--tx2)'}">N2 — vía mi N1 (${me.b2}%)</button>
-            </div></div>`:''}
-          <div class="g2">
-            <div>
-              <div style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">Cantidad de personas</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <button class="adj-btn" onclick="crUpdM(${tm.li},'count',${tm.count}-1)">−</button>
-                <span style="font-size:22px;font-weight:800;min-width:32px;text-align:center;color:var(--tx)">${tm.count}</span>
-                <button class="adj-btn big" onclick="crUpdM(${tm.li},'count',${tm.count}+1)">+</button>
-              </div>
-            </div>
-            <div>
-              <div style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">Volumen promedio/persona (pts)</div>
-              <div style="display:flex;align-items:center;gap:6px">
-                <button class="adj-btn" onclick="crUpdM(${tm.li},'vol',${tm.vol}-100)">−</button>
-                <input type="text" inputmode="numeric" value="${tm.vol>0?fmtN(tm.vol):''}" placeholder="0" id="vol_${tm.li}"
-                  oninput="fmtVolCR(this,${tm.li})"
-                  onblur="blurVolCR(this,${tm.li})"
-                  onkeydown="enterVolCR(this,${tm.li},event)"
-                  style="font-size:18px;font-weight:700;padding:7px 8px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--card2);text-align:right;flex:1;min-width:0">
-                <button class="adj-btn big" onclick="crUpdM(${tm.li},'vol',${tm.vol}+100)">+</button>
-              </div>
-              <input type="range" min="0" max="${Math.max(5000,tm.vol+500)}" step="50" value="${tm.vol}"
-                oninput="crUpdM(${tm.li},'vol',parseInt(this.value))"
-                style="width:100%;accent-color:${lv.c};margin-top:7px;cursor:pointer">
-            </div>
-          </div>
+          ${lv.isDir?`<div style="font-size:11px;color:var(--tx2);margin-bottom:7px">Puntos y nivel de cada director/a en tu organización (N1 te reporta directo, N2 va vía tu N1):</div>`:`<div style="font-size:11px;color:var(--tx2);margin-bottom:7px">Puntos de cada persona (puedes darle un valor distinto a cada una):</div>`}
+          ${peopleHtml}
           ${calcNote}
           <div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--bdr);font-size:12px;color:var(--tx2)">
-            Vol. total: <strong style="color:var(--tx)">${Pt(tm.count*tm.vol)}</strong> &nbsp;·&nbsp;
-            Ganancia: <strong style="color:${r.rate>0?'var(--g)':'#854F0B'};font-size:13px">${r.rate>0?$c(r.earn):'$0'}</strong>
+            Vol. total: <strong style="color:var(--tx)">${Pt(tVol)}</strong> &nbsp;·&nbsp;
+            Ganancia: <strong style="color:${r.earn>0?'var(--g)':'#854F0B'};font-size:13px">${r.earn>0?$c(r.earn):'$0'}</strong>
           </div></div>`;
       });
     }
@@ -1265,8 +1258,8 @@ function crRender(){
       rows.forEach(r=>h+=`<div class="earn-row">
         <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
           ${liEl(r.lv,28,7)}<div style="margin-top:1px">
-            <div style="font-size:13px;font-weight:700;color:var(--tx)">${r.lv.n}${r.lv.isDir?' ('+r.nivel+')':''}</div>
-            <div style="font-size:11px;color:var(--tx2)">${r.count} persona${r.count!==1?'s':''} · ${Pt(r.count*r.vol)}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--tx)">${r.lv.n}${r.lv.isDir?' ('+tmNivCount(r,'N1')+' N1·'+tmNivCount(r,'N2')+' N2)':''}</div>
+            <div style="font-size:11px;color:var(--tx2)">${tmCount(r)} persona${tmCount(r)!==1?'s':''} · ${Pt(tmVol(r))}</div>
             <div style="font-size:11px;color:${r.rate>0?'var(--g)':'#993C1D'}">${r.detail}</div>
           </div>
         </div>
@@ -1284,7 +1277,7 @@ function crRender(){
       <div class="g4">
         <div class="stat"><div class="stat-lbl">Ciclo (21 días)</div><div class="stat-val">${$c(totalCiclo)}</div></div>
         <div class="stat"><div class="stat-lbl">Proyección 30 días</div><div class="stat-val" style="color:#BA7517">${$c(total30)}</div></div>
-        <div class="stat"><div class="stat-lbl">Personas en red</div><div class="stat-val">${S.cr_team.reduce((a,t)=>a+t.count,0)}</div></div>
+        <div class="stat"><div class="stat-lbl">Personas en red</div><div class="stat-val">${S.cr_team.reduce((a,t)=>a+tmCount(t),0)}</div></div>
         <div class="stat"><div class="stat-lbl">Grupos en red</div><div class="stat-val">${S.cr_team.length}</div></div>
       </div>`;
     }
@@ -1292,17 +1285,16 @@ function crRender(){
   return h;
 }
 window.crSetMy=i=>{S.cr_myLvl=i;S.cr_team=[];R();};
-window.crToggle=lvIdx=>{if(S.cr_team.find(t=>t.li===lvIdx))S.cr_team=S.cr_team.filter(t=>t.li!==lvIdx);else S.cr_team=[...S.cr_team,{li:lvIdx,count:1,vol:0,nivel:L[lvIdx].isDir?'N1':'eq'}];R();};
-window.crRemove=lvIdx=>{S.cr_team=S.cr_team.filter(t=>t.li!==lvIdx);R();};
-window.crUpdM=(lvIdx,f,v)=>{
-  const val=(f==='count')?Math.max(1,+v):(f==='vol')?Math.max(0,+v):v;
-  S.cr_team=S.cr_team.map(t=>t.li===lvIdx?{...t,[f]:val}:t);R();
-};
-window.crUpdMSilent=(lvIdx,f,v)=>{
-  const val=(f==='count')?Math.max(1,+v):(f==='vol')?Math.max(0,+v):v;
-  S.cr_team=S.cr_team.map(t=>t.li===lvIdx?{...t,[f]:val}:t);
-};
-window.crSetNivel=(lvIdx,nv)=>{S.cr_team=S.cr_team.map(t=>t.li===lvIdx?{...t,nivel:nv}:t);R();};
+window.crToggle=li=>{if(S.cr_team.find(t=>t.li===li))S.cr_team=S.cr_team.filter(t=>t.li!==li);else S.cr_team=[...S.cr_team,{li,people:[{vol:0,nivel:L[li].isDir?'N1':'eq'}]}];R();};
+window.crRemove=li=>{S.cr_team=S.cr_team.filter(t=>t.li!==li);R();};
+window.crAddPerson=li=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:[...t.people,{vol:0,nivel:L[li].isDir?'N1':'eq'}]}:t);R();};
+window.crRemovePerson=(li,j)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.filter((_,k)=>k!==j)}:t).filter(t=>t.people.length>0);R();};
+window.crSetPersonVol=(li,j,v)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,vol:Math.max(0,+v||0)}:p)}:t);R();};
+window.crSetPersonVolSilent=(li,j,v)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,vol:Math.max(0,+v||0)}:p)}:t);};
+window.crSetPersonNivel=(li,j,nv)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,nivel:nv}:p)}:t);R();};
+window.fmtPersonCR=(el,li,j)=>{var raw=el.value.replace(/\./g,'');crSetPersonVolSilent(li,j,parseInt(raw)||0);};
+window.blurPersonCR=(el,li,j)=>{var raw=el.value.replace(/\./g,'');crSetPersonVol(li,j,Math.max(0,parseInt(raw)||0));};
+window.enterPersonCR=(el,li,j,ev)=>{if(ev.key==='Enter')window.blurPersonCR(el,li,j);};
 window.crLoad=idx=>{if(SCENARIOS[idx])S.cr_team=JSON.parse(JSON.stringify(SCENARIOS[idx]));R();};
 window.crClear=()=>{S.cr_team=[];R();};
 
