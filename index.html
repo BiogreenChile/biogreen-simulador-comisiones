@@ -1784,11 +1784,12 @@ function planRender(){
   })()}
 
   <div class="card"><div class="ctitle">Comparativo · Directa y Delegada lado a lado</div>
+    <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">Cuánto ganas por vender un producto de <strong>$14.990</strong> a cada nivel de tu red.</div>
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:11px">
       <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#B8770A;flex-shrink:0"></span><strong style="color:#B8770A">Directa</strong></span>
       <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#00833E;flex-shrink:0"></span><strong style="color:var(--g)">Delegada</strong></span>
     </div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px">
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:440px">
       <thead><tr style="background:var(--card2);border-bottom:2px solid var(--bdr)">
         <th style="text-align:left;padding:9px 10px;color:var(--tx2);font-weight:700">Quien vende →</th>
         <th style="text-align:center;padding:9px 8px;color:#639922;font-weight:700">Sobre DBR</th>
@@ -1798,22 +1799,22 @@ function planRender(){
       </tr></thead><tbody>
       ${L.slice(1).map((lv,i)=>{
         const idx=i+1;
-        const dirRow=DIRECT_RATES[idx===1?0:idx===2?1:idx===3?2:3];
-        const delRow=DELEG_RATES[i];
         return`<tr style="border-bottom:1px solid var(--bdr)">
           <td style="padding:9px 10px;font-weight:700;color:${lv.c}">${lv.id}</td>
           ${[0,1,2,3].map(b=>{
             if(b>=idx) return`<td style="text-align:center;padding:9px 8px;color:var(--tx3)">—</td>`;
+            const dir=calcNetworkEarn(idx,b,14990,'normal','directa').earn;
+            const del=calcNetworkEarn(idx,b,14990,'normal','delegada').earn;
             return`<td style="text-align:center;padding:7px 8px;line-height:1.5">
-              <div style="font-weight:800;color:#B8770A">${dirRow[b]}%</div>
-              <div style="font-weight:800;color:var(--g)">${delRow[b]}%</div>
+              <div style="font-weight:800;color:#B8770A">${$c(dir)}</div>
+              <div style="font-weight:800;color:var(--g)">${$c(del)}</div>
             </td>`;
           }).join('')}
         </tr>`;
       }).join('')}
       </tbody></table></div>
     <div style="margin-top:8px;padding:8px 12px;background:var(--card2);border-radius:8px;font-size:11px;color:var(--tx2);line-height:1.6">
-      En Directa todos los niveles de Director comparten los mismos porcentajes del plan (25% · 20% · 13% · 8%). En Delegada el porcentaje sube con cada nivel, porque tu precio de compra baja y la diferencia con quien te compra se hace mayor.
+      En <strong style="color:var(--g)">Delegada</strong> casi siempre ganas más, porque te quedas con toda la diferencia entre lo que paga tu red y lo que te costó a ti. En <strong style="color:#B8770A">Directa</strong> recibes un porcentaje sobre lo que paga tu comprador, sin poner capital ni entregar. Montos con IVA incluido.
     </div>
   </div>
 `;
