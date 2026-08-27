@@ -267,10 +267,10 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;-webkit-font-
   </div>
 
   <!-- Chip de modo activo -->
-  <div class="mode-chip" onclick="changeMode()" id="mode-chip">
+  <div class="mode-chip" onclick="toggleMode()" id="mode-chip">
     <div class="mode-chip-lbl">Modo activo</div>
     <div class="mode-chip-val" id="mode-chip-val">—</div>
-    <div class="mode-chip-cta">Tap para cambiar →</div>
+    <div class="mode-chip-cta" id="mode-chip-cta">Cambiar de modo →</div>
   </div>
 
   <div class="nav-sec">Calculadoras</div>
@@ -336,10 +336,11 @@ function I(key,size=16,color='currentColor'){return `<svg width="${size}" height
 // ─── FUNCIONES HELPER TEMPRANAS ───
 function updateModeChip(){
   const el=document.getElementById('mode-chip-val');
+  const cta=document.getElementById('mode-chip-cta');
   if(!el)return;
-  if(S&&S.distMode==='directa') el.innerHTML=I('store',13)+' Distribución Directa';
-  else if(S&&S.distMode==='delegada') el.innerHTML=I('users',13)+' Distribución Delegada';
-  else el.textContent='—';
+  if(S&&S.distMode==='directa'){ el.innerHTML=I('store',13)+' Distribución Directa'; if(cta)cta.innerHTML=I('users',11)+' Ir a Delegada →'; }
+  else if(S&&S.distMode==='delegada'){ el.innerHTML=I('users',13)+' Distribución Delegada'; if(cta)cta.innerHTML=I('store',11)+' Ir a Directa →'; }
+  else { el.textContent='—'; if(cta)cta.textContent='Elegir modo →'; }
 }
 
 // ─── ESTADO (definido antes del IIFE de acceso) ───
@@ -417,6 +418,16 @@ window.setMode=function(mode){
   setTimeout(()=>{ov.style.display='none';ov.classList.remove('hide');},420);
   updateModeChip();
   R();
+};
+
+// Cambia directo al otro modo, sin pasar por la pantalla de inicio.
+window.toggleMode=function(){
+  const next=S.distMode==='directa'?'delegada':'directa';
+  S.distMode=next;
+  sessionStorage.setItem(MODE_KEY,next);
+  updateModeChip();
+  R();
+  closeMobileMenu();
 };
 
 window.changeMode=function(){
