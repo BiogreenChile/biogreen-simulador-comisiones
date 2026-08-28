@@ -384,6 +384,9 @@ window.submitRut=function(){
           ov.classList.add('hide');
           setTimeout(()=>{ov.style.display='none';showModeOverlayIfNeeded();},420);
         },1800);
+      } else if(data.busy){
+        btn.disabled=false; btn.textContent='Ingresar';
+        msg.innerHTML='<div class="rut-msg err">El servicio está ocupado en este momento. Espera unos segundos y vuelve a intentar.</div>';
       } else {
         btn.disabled=false; btn.textContent='Ingresar';
         msg.innerHTML=`<div class="rut-msg err">RUT no encontrado.</div>
