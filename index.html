@@ -1752,13 +1752,18 @@ function planRender(){
     const filas=esDir
       ? [['DBR+','#1D9E75'],['LID','#888780'],['COR','#D85A30'],['DIR (DT→DN)','#B8770A']]
           .map((r,i)=>[r[0],r[1],DIRECT_RATES[i]])
-      : L.slice(1).map((lv,i)=>[lv.id,lv.c,DELEG_RATES[i]]);
+      : L.slice(1).map((lv,i)=>{
+          const idx=i+1;
+          // % de lo que paga el comprador (misma base que Directa), vía el motor de cálculo
+          const row=[0,1,2,3].map(b=> b<idx ? calcNetworkEarn(idx,b,14990,'normal','delegada').diff : 0);
+          return [lv.id,lv.c,row];
+        });
     const titulo=esDir?'Tabla Distribución Directa':'Tabla Distribución Delegada';
     const pie=esDir
       ? `<strong>Cálculo Distribución Directa:</strong> precio real de compra de quien te compra (según su propio % de categoría) × % de la tabla = tu retorno.<br>
          Ejemplo: Director sobre un DBR → ($14.990 × 75%) × 25% = $2.811 de retorno · Accesorios/Kits excluidos del cálculo.`
-      : `<strong>Cálculo Distribución Delegada:</strong> tu ganancia es la resta entre el precio de compra de quien te compra y el tuyo. El % de la tabla es esa diferencia, aplicada sobre el precio de catálogo.<br>
-         Ejemplo: Líder sobre un DBR → el DBR paga el 75% del catálogo y el Líder el 59%, así que el Líder gana el 16%: $14.990 × 16% = $2.398.`;
+      : `<strong>Cálculo Distribución Delegada:</strong> tu ganancia es lo que paga quien te compra menos tu propio precio de compra. El % de la tabla es esa ganancia sobre lo que paga tu comprador.<br>
+         Ejemplo: Líder sobre un DBR+ → el DBR+ paga $9.744 y el Líder $8.867, así que el Líder gana $877, un 9% de lo que pagó el DBR+.`;
     return `<div class="card"><div class="ctitle">Cómo se calcula la ganancia de red en tu modo</div>
     <div style="font-size:12px;color:var(--tx);line-height:1.8">
       ${esDir
