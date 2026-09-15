@@ -601,7 +601,9 @@ window.blurVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.
 function levelBuyPrice(idx, pvp, prodId, rate){
   const prod=PROD_TYPES.find(p=>p.id===prodId)||PROD_TYPES[0];
   const pct=prod.pct[idx];
-  if(idx>=2&&pct<100) return Math.round(pvp*0.65*(1-rate/100));
+  // Normal de Líder en adelante: fórmula exacta (validada con el Excel oficial).
+  // Promo y Accesorios: tabla oficial de precios (tienen su propia base).
+  if(idx>=2&&prod.id==='normal') return Math.round(pvp*0.65*(1-rate/100));
   return Math.round(pvp*pct/100);
 }
 
@@ -736,14 +738,8 @@ function cpRender(){
 
   // Para LID+ con productos con margen: calcular desde Precio DBR+ × (1 - tasa%)
   // Para DBR/DBR+ o productos sin margen (pct=100): usar tabla
-  let compra, earn;
-  if(S.cp_myLvl>=2 && buyPctTable<100){
-    compra=Math.round(pvp*0.65*(1-myRate/100));
-    earn=pvp-compra;
-  } else {
-    compra=Math.round(pvp*buyPctTable/100);
-    earn=Math.round(pvp*(100-buyPctTable)/100);
-  }
+  const compra=levelBuyPrice(S.cp_myLvl,pvp,S.cp_prodType,myRate);
+  const earn=pvp-compra;
   const hasGain=earn>0;
   // % real (puede no ser entero)
   const realBuyPct=(compra/pvp*100).toFixed(1);
@@ -837,14 +833,7 @@ function cpRender(){
       </tr></thead><tbody>
       ${PROD_TYPES.map(p=>{
         const bpT=p.pct[S.cp_myLvl],cur=p.id===S.cp_prodType;
-        let cPrecio, cGanancia;
-        if(S.cp_myLvl>=2&&bpT<100){
-          cPrecio=Math.round(pvp*0.65*(1-myRate/100));
-          cGanancia=pvp-cPrecio;
-        } else {
-          cPrecio=Math.round(pvp*bpT/100);
-          cGanancia=pvp-cPrecio;
-        }
+        const cPrecio=levelBuyPrice(S.cp_myLvl,pvp,p.id,myRate), cGanancia=pvp-cPrecio;
         const gPct=(cGanancia/pvp*100).toFixed(1);
         const hasG=cGanancia>0;
         return`<tr style="border-bottom:1px solid var(--bdr);background:${cur?me.bg:''}">
