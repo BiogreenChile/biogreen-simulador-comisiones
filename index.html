@@ -474,16 +474,6 @@ const PROD_TYPES=[
    pct:[100,100,100,100,100,90,90,90,90,90]}
 ];
 
-// ─── TASAS POR NIVEL — FÓRMULA UNIVERSAL ───
-// Ganancia red = PVP × 65% (precio DBR+) × (miTasa% − tasaComprador%)
-// Aplica IGUAL en Delegada y Directa — solo cambian los porcentajes.
-//
-// DELEGADA: usa L[idx].rate (ya definido: LID=9, COR=15, DT=22, DR=24, DS=26, DD=28, DE=30, DN=32)
-// DIRECTA:  tasas individuales por nivel (menores que Delegada)
-//   DBR = -5 (paga 5% más que DBR+, genera mayor diferencial para niveles superiores)
-//   DBR+ = 0, LID = 7, COR = 12, DIR (todos) = 20
-const DR = [-5, 0, 7, 12, 20, 20, 20, 20, 20, 20]; // Directa rates por índice de nivel
-
 // Descuento de compra por categoría — es el MISMO en ambos modos.
 // Lo que cambia entre Directa y Delegada es la ganancia de red, no este descuento.
 function modeRate(idx){
@@ -499,28 +489,12 @@ const DIRECT_RATES=[
   [25, 20, 13, 8]
 ];
 
-// Tabla Delegada — derivada de los precios de categoría (producto Normal).
-// En Delegada la ganancia es la resta de precios de compra, así que el
-// diferencial = % que paga el comprador − % que pagas tú. Se calcula aquí
-// para que no se desincronice si cambian los precios de PROD_TYPES.
-const DELEG_RATES=(()=>{
-  const pct=PROD_TYPES[0].pct; // Normal: [75,65,59,55,51,49,48,47,46,44]
-  const rows=[];
-  for(let s=1;s<pct.length;s++){
-    const row=[];
-    for(let b=0;b<4;b++) row.push(b<s?pct[b]-pct[s]:0);
-    rows.push(row);
-  }
-  return rows; // índice 0 = DBR+, 1 = LID, 2 = COR, 3 = DT, ...
-})();
-
 // ─── VALOR DEL PUNTO POR CATEGORÍA ───
 // Cada nivel compra a un precio distinto, así que su punto vale distinto.
 // Índices alineados con L: DBR, DBR+, LID, COR, DT, DR, DS, DD, DE, DN.
 const IVA=1.19;
 const PUNTO_VAL_NETO=[945,819,745,696,639,622,606,589,573,557]; // valor del punto NETO (dato oficial)
 const PUNTO_VAL=PUNTO_VAL_NETO.map(v=>Math.round(v*IVA)); // con IVA incluido — es lo que usan los cálculos
-const F=PUNTO_VAL[1]; // referencia DBR+ para cálculos genéricos
 // Equipos típicos — cada uno cumple (o supera apenas) el mínimo de estructura y volumen de su nivel.
 const P=(n,vol,nivel='eq')=>Array.from({length:n},()=>({vol,nivel}));
 const SCENARIOS={
@@ -622,7 +596,7 @@ window.blurVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.
 
 // ─── CÁLCULO VENTA A RED ───
 // La base de la comisión es el precio real al que compra quien está en tu red
-// (según su nivel), no el precio DBR+. Diferencial = tu tasa − tasa del comprador.
+// (según su nivel), no el precio DBR+.
 // Precio real de compra de un nivel: DBR/DBR+ = % plano sobre PVP. Líder+ = Precio DBR+ (PVP×65%) × (1 − % adicional de su categoría).
 function levelBuyPrice(idx, pvp, prodId, rate){
   const prod=PROD_TYPES.find(p=>p.id===prodId)||PROD_TYPES[0];
@@ -640,9 +614,7 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
   if(distMode==='directa'&&prodId==='accesorio')
     return{earn:0,excluded:true,reason:'Accesorios y Kits excluidos en Dist. Directa'};
 
-  const meRate=distMode==='directa'?DR[myIdx]:L[myIdx].rate;
-  const buyerRate=distMode==='directa'?DR[buyerIdx]:L[buyerIdx].rate;
-  const diff=Math.max(0,meRate-buyerRate);
+  const meRate=L[myIdx].rate, buyerRate=L[buyerIdx].rate;
 
   if(distMode==='delegada'){
     // Delegada: ganancia = precio de compra de quien te compra − tu precio de compra.
@@ -663,8 +635,7 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
 
   // Directa: el comprador paga su propio % de categoría (el PVP ya incluye IVA),
   // y tu retorno es el % de la tabla DIRECT_RATES sobre ese precio que pagó.
-  const prod=PROD_TYPES.find(p=>p.id===prodId)||PROD_TYPES[0];
-  const buyerPrice=Math.round(pvp*prod.pct[buyerIdx]/100);
+  const buyerPrice=levelBuyPrice(buyerIdx,pvp,prodId,buyerRate); // mismo precio que en Delegada
 
   const myRow=myIdx===1?0:myIdx===2?1:myIdx===3?2:myIdx>=4?3:null;
   const buyerCol=buyerIdx===0?0:buyerIdx===1?1:buyerIdx===2?2:buyerIdx===3?3:null;
@@ -682,7 +653,7 @@ function calcNetworkEarn(myIdx, buyerIdx, pvp, prodId, modeOverride){
   };
 }
 
-// ─── CÁLCULO FILA DE RED — FÓRMULA UNIVERSAL ───
+// ─── CÁLCULO FILA DE RED (Calculadora de Red) ───
 function calcTeamRow(myIdx,tm){
   const me=L[myIdx],th=L[tm.li];
   const pto=PUNTO_VAL[tm.li]; // el punto vale según la categoría de quien está en tu red
@@ -761,8 +732,7 @@ function cpRender(){
   const pvp=S.cp_pvp;
   const prod=PROD_TYPES.find(p=>p.id===S.cp_prodType)||PROD_TYPES[0];
   const buyPctTable=prod.pct[S.cp_myLvl]; // valor de referencia (tabla)
-  const myRate=modeRate(S.cp_myLvl);       // tasa del modo activo
-  const dbrBase=Math.round(pvp*0.65);       // Precio DBR+
+  const myRate=modeRate(S.cp_myLvl);       // descuento de compra de tu categoría
 
   // Para LID+ con productos con margen: calcular desde Precio DBR+ × (1 - tasa%)
   // Para DBR/DBR+ o productos sin margen (pct=100): usar tabla
@@ -862,7 +832,6 @@ function cpRender(){
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:var(--card2);border-bottom:2px solid var(--bdr)">
         <th style="text-align:left;padding:9px 8px;color:var(--tx2);font-weight:700">Tipo</th>
-        ${S.cp_myLvl>=2?`<th style="text-align:right;padding:9px 8px;color:var(--tx2);font-weight:700">Precio DBR+</th><th style="text-align:right;padding:9px 8px;color:var(--tx2);font-weight:700">×(1−${myRate}%)</th>`:''}
         <th style="text-align:right;padding:9px 8px;color:var(--tx2);font-weight:700">Tu precio</th>
         <th style="text-align:right;padding:9px 8px;color:var(--tx2);font-weight:700">Tu ganancia</th>
       </tr></thead><tbody>
@@ -880,7 +849,6 @@ function cpRender(){
         const hasG=cGanancia>0;
         return`<tr style="border-bottom:1px solid var(--bdr);background:${cur?me.bg:''}">
           <td style="padding:9px 8px"><span style="font-size:14px">${p.emoji}</span> <strong style="color:${cur?me.c:'var(--tx)'}">${p.label}</strong>${cur?`<span style="font-size:10px;background:${me.c};color:white;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:6px">Activo</span>`:''}</td>
-          ${S.cp_myLvl>=2?`<td style="text-align:right;padding:9px 8px;font-size:11px;color:var(--tx3)">${bpT<100?$c(dbrBase):'—'}</td><td style="text-align:right;padding:9px 8px;font-size:11px;color:var(--tx3)">${bpT<100?(100-myRate)+'%':'—'}</td>`:''}
           <td style="text-align:right;padding:9px 8px;color:var(--tx2);font-weight:700">${$c(cPrecio)}</td>
           <td style="text-align:right;padding:9px 8px;font-weight:${cur?800:600};color:${hasG?'var(--g)':'var(--tx3)'}">${hasG?$c(cGanancia)+' ('+gPct+'%)':'—'}</td>
         </tr>`;
@@ -1115,7 +1083,7 @@ function crRender(){
   }
 
   h+=`<div class="card"><div class="ctitle">Tu nivel</div>${lvlChips(myIdx,'crSetMy')}
-  ${me?`<div class="hint">Modo ${modeLabel} · Ganancias red: ${me.pD>0?me.pD+'% s/PVP':me.rate+'% sobre Precio DBR+'}${me.b1>0?' · Regalía N1 '+me.b1+'% · N2 '+me.b2+'%':''}</div>`:''}
+  ${me?`<div class="hint">Modo ${modeLabel} · Tu descuento de compra: ${me.pD>0?me.pD:Math.round((1-0.65*(1-me.rate/100))*100)}%${me.b1>0?' · Regalía N1 '+me.b1+'% · N2 '+me.b2+'%':''}</div>`:''}
   </div>`;
 
   if(myIdx!==null){
@@ -1228,11 +1196,10 @@ function crRender(){
     }
     h+=`</div>`;
 
-    // Ventas personales — cálculo correcto según modo
+    // Ventas personales — el descuento de compra no depende del modo
     const crMyRate=modeRate(myIdx);
     const crEarnPct=me.pD>0?me.pD:Math.round((1-0.65*(1-crMyRate/100))*1000)/10;
     const crPersonalEarn=me.pD>0?Math.round(S.cr_ventas*me.pD/100):Math.round(S.cr_ventas*(1-0.65*(1-crMyRate/100)));
-    const crModeStr=S.distMode==='directa'?'Directa':'Delegada';
 
     h+=`<div class="card">
       <div class="ctitle">Tus ventas del período (PVP)</div>
@@ -1248,8 +1215,7 @@ function crRender(){
       <div style="margin-top:9px;font-size:12px;color:var(--tx2)">
         ${me.pD>0
           ?`Tu ganancia directa (${me.pD}%): <strong style="color:var(--g)">${$c(crPersonalEarn)}</strong>`
-          :`Ganancia venta a clientes ${crModeStr} (~${crEarnPct}%): <strong style="color:var(--g)">${$c(crPersonalEarn)}</strong>
-           <span style="font-size:10px;color:var(--tx3)"> PVP × 65% × ${crMyRate}% = margen</span>`}
+          :`Ganancia vendiendo a clientes (${crEarnPct}% de descuento): <strong style="color:var(--g)">${$c(crPersonalEarn)}</strong>`}
       </div></div>`;
 
     if(S.cr_team.length>0){
@@ -1261,7 +1227,7 @@ function crRender(){
       h+=`<div class="card" style="border:2px solid var(--g)"><div class="ctitle">Desglose de ingresos del ciclo</div>
       <div class="earn-row"><div>
         <div style="font-size:14px;font-weight:700;color:var(--tx)">Tus ventas a clientes</div>
-        <div style="font-size:11px;color:var(--tx2)">${me.pD>0?me.pD+'% del PVP':crEarnPct+'% (PVP × 65% × '+crMyRate+'%)'}</div>
+        <div style="font-size:11px;color:var(--tx2)">${me.pD>0?me.pD+'% del PVP':crEarnPct+'% de descuento sobre catálogo'}</div>
       </div><div style="text-align:right">
         <span class="badge" style="background:var(--gl);color:var(--gd)">${crEarnPct}%</span>
         <div style="font-size:17px;font-weight:700;color:var(--tx);margin-top:3px">${$c(personal)}</div>
