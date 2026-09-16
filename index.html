@@ -801,6 +801,7 @@ function cpRender(){
     <div class="rh-row"><span class="rh-row-lbl">Tu precio de compra (${realGainPct}% de descuento)</span><span class="rh-row-val">${$c(compra)}</span></div>
     <div class="rh-row" style="background:rgba(255,255,255,.25)"><span class="rh-row-lbl" style="font-weight:800">✓ Tu ganancia por venderlo</span><span class="rh-row-val" style="font-size:18px">${$c(earn)}</span></div>
   </div>
+  <div style="margin:-4px 0 12px;padding:9px 12px;background:var(--card2);border-radius:8px;font-size:10.5px;color:var(--tx2);line-height:1.5">${I('calc',12)} Montos referenciales con IVA incluido. Si emites boleta o factura, tu ingreso tributable es el valor neto (monto ÷ 1,19).</div>
   ${S.cp_myLvl>=2&&buyPctTable<100?`<div class="calc-chain">
     <div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${I('calc',13)} Cómo se arma tu ganancia · ${me.n}</div>
     <div class="calc-step"><span style="color:var(--tx2)">Precio del producto en el catálogo</span><span class="calc-arrow">→</span><span><strong>${$c(pvp)}</strong></span></div>
@@ -942,7 +943,8 @@ function cvrRender(){
       <div class="rh-lbl">${prod.emoji} Tú (${nm(me)}) → ${nm(buyer)} · PVP ${$c(pvp)} · ${modeLabel}</div>
       <div class="rh-val">${$c(earn)}</div>
       <div class="rh-sub">${calc.excluded?'Sin retorno en este modo/producto':earn>0?`Tu ganancia de red: ${$c(earn)}`:'Sin diferencial — no hay ganancia'}</div>
-    </div>`;
+    </div>
+    <div style="margin:-4px 0 12px;padding:9px 12px;background:var(--card2);border-radius:8px;font-size:10.5px;color:var(--tx2);line-height:1.5">${I('calc',12)} Montos referenciales con IVA incluido. Si emites boleta o factura, tu ingreso tributable es el valor neto (monto ÷ 1,19).</div>`;
 
     if(chainHtml) h+=chainHtml;
 
@@ -997,8 +999,8 @@ window.cvrSetProd=id=>{S.cvr_prodType=id;R();};
 const BC_PUNTO=606; // valor de referencia por punto (factor de red) — uso interno, no se muestra
 function bcRender(){
   const monto=S.bc_link;
-  const gananciaNeta=Math.round(monto*0.20);
-  const montoSinIVA=monto/1.19; // se le quita el IVA 19% al monto vendido antes de convertir a puntos
+  const montoSinIVA=monto/1.19; // el precio de catálogo incluye IVA 19%: ganancia y puntos se calculan sin IVA
+  const gananciaNeta=Math.round(montoSinIVA*0.20);
   const puntos=Math.round(montoSinIVA/BC_PUNTO/2); // se divide entre 2 porque el punto Biocommerce es el 50% del normal
 
   let h=logoHeader()+`<div class="pg-title">Biocommerce</div>
@@ -1019,14 +1021,14 @@ function bcRender(){
   </div>
 
   <div class="card">
-    <div class="earn-row"><span style="font-size:13px;color:var(--tx2)">Ganancia neta (20%)</span><strong style="color:var(--g);font-size:15px">${$c(gananciaNeta)}</strong></div>
+    <div class="earn-row"><span style="font-size:13px;color:var(--tx2)">Ganancia neta (20% del precio sin IVA)</span><strong style="color:var(--g);font-size:15px">${$c(gananciaNeta)}</strong></div>
     <div class="earn-row"><span style="font-size:13px;color:var(--tx2)">Puntos generados por ventas Biocommerce (50%)</span><strong style="color:var(--tx);font-size:15px">${Pt(puntos)}</strong></div>
   </div>
 
   <div class="result-hero">
     <div class="rh-lbl">Ganancia estimada este ciclo</div>
     <div class="rh-val">${$c(gananciaNeta)}</div>
-    <div class="rh-sub">Ganancia neta (20%) sobre tus ventas con link</div>
+    <div class="rh-sub">Ganancia neta: 20% de tus ventas con link, sin IVA</div>
   </div>
 
   <div class="val-warn">
