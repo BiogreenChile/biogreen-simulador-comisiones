@@ -305,7 +305,7 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;-webkit-font-
 // ─── FORMATEADOR NUMÉRICO (14.990) ───
 const $c = n => "$" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
 const fmtN = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
-const Pt = n => n>=1000?(n/1000).toFixed(0)+".000 pts":n+" pts";
+const Pt = n => fmtN(n)+" pts";   // sin redondear a miles: 1.500 debe mostrarse 1.500, no 2.000
 
 // ─── ICONOS DE LÍNEA (estilo Lucide, reemplazan emoji) ───
 const ICN={
@@ -1157,7 +1157,7 @@ function crRender(){
         tm.people.forEach((p,j)=>{
           peopleHtml+=`<div style="display:flex;align-items:center;gap:7px">
             <span style="font-size:12px;color:var(--tx3);min-width:52px;flex:none">${lv.id} #${j+1}</span>
-            <input type="text" inputmode="numeric" value="${p.vol>0?fmtN(p.vol):''}" placeholder="0 pts"
+            <input type="text" inputmode="numeric" value="${p.vol>0?fmtN(p.vol):''}" placeholder="0 pts" id="crp_${tm.li}_${j}"
               oninput="fmtPersonCR(this,${tm.li},${j})" onblur="blurPersonCR(this,${tm.li},${j})" onkeydown="enterPersonCR(this,${tm.li},${j},event)"
               style="font-size:16px;font-weight:700;padding:6px 9px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--card2);text-align:right;flex:1;min-width:0">
             ${lv.isDir?`<div class="seg" style="flex:none">
@@ -1260,8 +1260,12 @@ window.crRemovePerson=(li,j)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people
 window.crSetPersonVol=(li,j,v)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,vol:Math.max(0,+v||0)}:p)}:t);R();};
 window.crSetPersonVolSilent=(li,j,v)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,vol:Math.max(0,+v||0)}:p)}:t);};
 window.crSetPersonNivel=(li,j,nv)=>{S.cr_team=S.cr_team.map(t=>t.li===li?{...t,people:t.people.map((p,k)=>k===j?{...p,nivel:nv}:p)}:t);R();};
-window.fmtPersonCR=(el,li,j)=>{var raw=el.value.replace(/\./g,'');crSetPersonVolSilent(li,j,parseInt(raw)||0);};
-window.blurPersonCR=(el,li,j)=>{var raw=el.value.replace(/\./g,'');crSetPersonVol(li,j,Math.max(0,parseInt(raw)||0));};
+// Al tipear se repinta todo (totales, validación y resumen quedan al día) y se devuelve el foco al
+// mismo campo con el texto tal cual se escribió. En blur NO se repinta: si el DOM se reemplaza mientras
+// el usuario hace clic en ✕ o en "Agregar", ese clic se pierde.
+window.crRefreshKeepFocus=(id,txt)=>{R();const e=document.getElementById(id);if(!e)return;e.value=txt;e.focus();try{e.setSelectionRange(txt.length,txt.length);}catch(_){}};
+window.fmtPersonCR=(el,li,j)=>{var txt=el.value,raw=txt.replace(/\./g,'');crSetPersonVolSilent(li,j,Math.max(0,parseInt(raw)||0));crRefreshKeepFocus('crp_'+li+'_'+j,txt);};
+window.blurPersonCR=(el,li,j)=>{var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);crSetPersonVolSilent(li,j,n);el.value=n>0?fmtN(n):'';};
 window.enterPersonCR=(el,li,j,ev)=>{if(ev.key==='Enter')window.blurPersonCR(el,li,j);};
 window.crLoad=idx=>{if(SCENARIOS[idx])S.cr_team=JSON.parse(JSON.stringify(SCENARIOS[idx]));R();};
 window.crClear=()=>{S.cr_team=[];R();};
