@@ -590,8 +590,14 @@ window._dirty=false;
 window.fmtInput=function(el,sk){var raw=el.value.replace(/\./g,'');S[sk]=Math.max(0,parseInt(raw)||0);};
 window.blurFmt=function(el,sk){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);S[sk]=n;el.value=n>0?fmtN(n):'';R();};
 window.enterFmt=function(el,sk,ev){if(ev.key==='Enter')window.blurFmt(el,sk);};
-window.fmtVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');valUpdMSilent(li,'vol',Math.max(0,parseInt(raw)||0));};
-window.blurVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);valUpdM(li,'vol',n);el.value=n>0?fmtN(n):'';};
+// Mismo criterio que en la Calculadora de Red: al tipear se repinta conservando foco y caret,
+// y el blur sólo reformatea (repintar en el blur se come el clic en ✕, − o +).
+window.fmtVolVAL=function(el,li){var txt=el.value,raw=txt.replace(/\./g,'');valUpdMSilent(li,'vol',Math.max(0,parseInt(raw)||0));crRefreshKeepFocus('valvol_'+li,txt);};
+// OJO: los handlers van en funciones, no en línea dentro de la plantilla: un `\.` escrito en un
+// template literal llega al HTML como `.` y el reemplazo borra todo el número.
+window.fmtVpVAL=function(el){var t=el.value,r=t.replace(/\./g,'');S.val_vp=Math.max(0,parseInt(r)||0);crRefreshKeepFocus('val_vp_inp',t);};
+window.blurVpVAL=function(el){el.value=S.val_vp>0?fmtN(S.val_vp):'';};
+window.blurVolVAL=function(el,li){var raw=el.value.replace(/\./g,'');var n=Math.max(0,parseInt(raw)||0);valUpdMSilent(li,'vol',n);el.value=n>0?fmtN(n):'';};
 
 
 // ─── CÁLCULO VENTA A RED ───
@@ -1415,9 +1421,8 @@ function valRender(){
       <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Requerido: <strong>${Pt(lv.vp)}</strong></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <button class="adj-btn" onclick="st({val_vp:Math.max(0,S.val_vp-10)})">−</button>
-        <input type="text" value="${S.val_vp>0?fmtN(S.val_vp):''}" placeholder="0"
-          oninput="var r=this.value.replace(/\./g,'');var n=Math.max(0,parseInt(r)||0);S.val_vp=n;this.value=n>0?fmtN(n):'';"
-          onblur="R()" onkeydown="if(event.key==='Enter')R()"
+        <input type="text" value="${S.val_vp>0?fmtN(S.val_vp):''}" placeholder="0" id="val_vp_inp"
+          oninput="fmtVpVAL(this)" onblur="blurVpVAL(this)" onkeydown="if(event.key==='Enter')this.blur();"
           style="flex:1;font-size:22px;font-weight:800;padding:8px 12px;border-radius:9px;border:1.5px solid var(--bdr);background:var(--card2);text-align:right">
         <button class="adj-btn big" onclick="st({val_vp:S.val_vp+10})">+</button>
       </div>
