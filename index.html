@@ -356,6 +356,24 @@ let S={
   plan_myLvl:null, plan_cmpLvl:null, plan_showCmp:false, plan_showTable:false
 };
 
+// ─── MEMORIA LOCAL ───
+// Conserva lo que la persona cargó si recarga la página o cambia de pestaña en el celular.
+// Vive sólo en su navegador: no viaja a ningún servidor ni lo ve nadie más.
+const LS_KEY='bg_sim_cl_v1';
+function guardarS(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(_){}}
+function restaurarS(){
+  try{
+    const g=JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(!g) return;
+    Object.keys(S).forEach(k=>{
+      const v=g[k]; if(v===undefined) return;
+      if(Array.isArray(S[k])!==Array.isArray(v)) return;              // cambió la forma del dato
+      if(S[k]!==null&&v!==null&&typeof S[k]!==typeof v) return;
+      S[k]=v;
+    });
+  }catch(_){}
+}
+window.borrarMemoria=()=>{try{localStorage.removeItem(LS_KEY);}catch(_){}};
+
 // ─── ACCESO POR RUT ───
 const RUT_API_URL='https://script.google.com/macros/s/AKfycbwD8bsATbjOzIJR7PxU64Nprbh5NzJDioZjl8DctsSB-cQdAsyINqOM82kCiVgfssBIuA/exec';
 const FRESHDESK_URL='https://biogreenchile.freshdesk.com/es-LA/support/home';
@@ -1804,7 +1822,9 @@ function R(){
   else if(S.page==='pm')  c=pmRender();
   else if(S.page==='plan')c=planRender();
   document.getElementById('MC').innerHTML=c;
+  guardarS();
 }
+restaurarS();
 R();
 </script>
 </body>
